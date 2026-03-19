@@ -1047,6 +1047,18 @@ interface PieceVisualProps {
 }
 
 function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking, isFinished, isAngry, canMove }: PieceVisualProps) {
+  const isMoving = !!piece.animationPath && !isKicked && !isFinished;
+  const stepCount = piece.animationPath?.length || 0;
+
+  // Create jumping keyframes for y-offset
+  const yKeyframes = [0];
+  if (isMoving) {
+    for (let i = 0; i < stepCount; i++) {
+      yKeyframes.push(-25); // Jump up
+      yKeyframes.push(0);   // Land
+    }
+  }
+
   const left = piece.animationPath ? piece.animationPath.map(p => `${p.x}%`) : `${coord.x}%`;
   const top = piece.animationPath ? piece.animationPath.map(p => `${p.y}%`) : `${coord.y}%`;
 
@@ -1057,14 +1069,15 @@ function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking
       animate={{ 
         left, 
         top,
+        y: yKeyframes,
         scale: isKicked ? [1, 2.5, 1] : isFinished ? [1, 1.5, 0] : 1,
         opacity: isFinished ? 0 : 1,
         rotate: isKicked ? [0, 720, 1440] : 0,
       }}
       transition={{ 
         type: piece.animationPath ? 'tween' : 'spring',
-        duration: piece.animationPath ? (isKicked ? 0.8 : piece.animationPath.length * 0.2) : 0.5,
-        ease: "easeInOut",
+        duration: piece.animationPath ? (isKicked ? 0.8 : piece.animationPath.length * 0.3) : 0.5,
+        ease: isMoving ? "linear" : "easeInOut",
         stiffness: 400, 
         damping: 25,
         mass: 0.8,
