@@ -1,0 +1,5 @@
+{
+  "name": "飛行大冒險 (Aeroplane Adventure)",
+  "description": "一個具有堆疊與踢人機制的經典飛行棋遊戲，支持玩家對戰電腦。",
+  "requestFramePermissions": []
+}
