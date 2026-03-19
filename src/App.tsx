@@ -775,6 +775,18 @@ export default function App() {
       {/* Empty space below board */}
       <div className="h-12" />
 
+      {/* Instructions - Floating above spinner */}
+      <div className="fixed bottom-[210px] right-[calc(50%-300px-64px-160px)] z-[150] w-40 flex flex-col items-center pointer-events-none">
+        <div className="bg-white/80 backdrop-blur-md px-3 py-2 rounded-2xl border border-stone-200 shadow-sm text-center">
+          <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">遊戲玩法</p>
+          <div className="text-[9px] font-bold text-stone-600 leading-relaxed">
+            <p>• 點擊轉盤決定步數</p>
+            <p>• 踩到對手踢回起點</p>
+            <p>• 4隻抵達終點獲勝</p>
+          </div>
+        </div>
+      </div>
+
       {/* Spinner Area - Bottom Right Outside Board */}
       <div className="fixed bottom-8 right-[calc(50%-300px-64px-160px)] z-[150] w-40 h-40 flex items-center justify-center">
         <div className="relative w-full h-full flex items-center justify-center">
