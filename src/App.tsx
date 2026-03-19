@@ -750,31 +750,33 @@ export default function App() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="w-full max-w-md flex justify-between items-stretch mb-4 gap-4">
+      <div className="w-full max-w-md flex flex-col sm:flex-row justify-between items-stretch mb-3 gap-2 sm:gap-4">
         {/* Player B Info */}
-        <div className={`flex-1 flex flex-col items-center p-3 rounded-2xl shadow-sm border transition-all ${game.currentPlayer === 'B' ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : 'bg-white border-stone-200'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <DinoIcon color="#ef4444" size={20} />
-            <span className="font-black text-red-700">玩家 B</span>
+        <div className={`flex-1 flex flex-col p-2 sm:p-3 rounded-2xl shadow-sm border transition-all ${game.currentPlayer === 'B' ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : 'bg-white border-stone-200'}`}>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1">
+              <DinoIcon color="#ef4444" size={16} />
+              <span className="font-black text-red-700 text-xs sm:text-sm whitespace-nowrap">玩家 B</span>
+            </div>
+            <div className="text-[9px] sm:text-[10px] font-bold text-red-600 bg-red-100/50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+              {game.kickedCount.B} 踢 | {game.stepsCount.B} 步
+            </div>
           </div>
-          <div className="text-[11px] font-bold text-red-600 bg-red-100/50 px-2 py-1 rounded-lg w-full text-center mb-3">
-            被踢 {game.kickedCount.B} 次 | {game.stepsCount.B} 步
-          </div>
-          <div className="flex flex-wrap justify-center gap-2 min-h-[36px]">
+          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 min-h-[32px] sm:min-h-[36px]">
             {game.pieces.filter(p => p.owner === 'B' && p.position === -1).map(p => (
               <motion.div 
                 key={p.id} 
                 layoutId={`piece-${p.id}`}
-                className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center border-2 border-red-200 cursor-pointer relative"
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-red-100 flex items-center justify-center border-2 border-red-200 cursor-pointer relative"
                 onClick={() => handlePieceClick(p.id)}
                 whileHover={{ scale: 1.1 }}
               >
-                <DinoIcon color="#ef4444" size={20} />
+                <DinoIcon color="#ef4444" size={16} />
                 {angryPieceIds.includes(p.id) && (
                   <motion.span 
                     initial={{ scale: 0 }} 
                     animate={{ scale: 1 }} 
-                    className="absolute -top-2 -right-2 text-lg"
+                    className="absolute -top-1.5 -right-1.5 text-sm sm:text-lg"
                   >
                     😡
                   </motion.span>
@@ -785,29 +787,31 @@ export default function App() {
         </div>
 
         {/* Player A Info */}
-        <div className={`flex-1 flex flex-col items-center p-3 rounded-2xl shadow-sm border transition-all ${game.currentPlayer === 'A' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200' : 'bg-white border-stone-200'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <DinoIcon color="#3b82f6" size={20} />
-            <span className="font-black text-blue-700">玩家 A</span>
+        <div className={`flex-1 flex flex-col p-2 sm:p-3 rounded-2xl shadow-sm border transition-all ${game.currentPlayer === 'A' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200' : 'bg-white border-stone-200'}`}>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1">
+              <DinoIcon color="#3b82f6" size={16} />
+              <span className="font-black text-blue-700 text-xs sm:text-sm whitespace-nowrap">玩家 A</span>
+            </div>
+            <div className="text-[9px] sm:text-[10px] font-bold text-blue-600 bg-blue-100/50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+              {game.kickedCount.A} 踢 | {game.stepsCount.A} 步
+            </div>
           </div>
-          <div className="text-[11px] font-bold text-blue-600 bg-blue-100/50 px-2 py-1 rounded-lg w-full text-center mb-3">
-            被踢 {game.kickedCount.A} 次 | {game.stepsCount.A} 步
-          </div>
-          <div className="flex flex-wrap justify-center gap-2 min-h-[36px]">
+          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 min-h-[32px] sm:min-h-[36px]">
             {game.pieces.filter(p => p.owner === 'A' && p.position === -1).map(p => (
               <motion.div 
                 key={p.id} 
                 layoutId={`piece-${p.id}`}
-                className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center border-2 border-blue-200 cursor-pointer relative"
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-blue-100 flex items-center justify-center border-2 border-blue-200 cursor-pointer relative"
                 onClick={() => handlePieceClick(p.id)}
                 whileHover={{ scale: 1.1 }}
               >
-                <DinoIcon color="#3b82f6" size={20} />
+                <DinoIcon color="#3b82f6" size={16} />
                 {angryPieceIds.includes(p.id) && (
                   <motion.span 
                     initial={{ scale: 0 }} 
                     animate={{ scale: 1 }} 
-                    className="absolute -top-2 -right-2 text-lg"
+                    className="absolute -top-1.5 -right-1.5 text-sm sm:text-lg"
                   >
                     😡
                   </motion.span>
@@ -819,29 +823,29 @@ export default function App() {
       </div>
 
       {/* Finish Zone - Horizontal Middle */}
-      <div className="w-full max-w-[500px] mb-4 bg-stone-100/50 rounded-2xl border-2 border-stone-800 p-3 flex items-center gap-4 shadow-sm relative overflow-hidden">
-        <div className="flex flex-col border-r-2 border-stone-200 pr-4">
-          <div className="text-xl font-black text-stone-800 uppercase tracking-[0.1em] mb-1">FINISH</div>
-          <div className="flex items-center gap-2">
-            <Trophy size={14} className="text-yellow-600" />
-            <span className="text-[10px] font-bold text-stone-400 italic">抵達終點</span>
+      <div className="w-full max-w-[400px] mb-4 bg-stone-100/50 rounded-2xl border-2 border-stone-800 p-1.5 sm:p-2 flex items-center gap-2 sm:gap-3 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col border-r-2 border-stone-200 pr-2 sm:pr-3">
+          <div className="text-base sm:text-lg font-black text-stone-800 uppercase tracking-[0.1em] mb-0">FINISH</div>
+          <div className="flex items-center gap-1">
+            <Trophy size={10} className="text-yellow-600" />
+            <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 italic">抵達終點</span>
           </div>
         </div>
-        <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+        <div className="flex-1 flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5">
           <AnimatePresence>
             {game.finishedPieces.map((owner, i) => (
               <motion.div
                 key={`finished-${i}`}
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="w-10 h-10 rounded-xl border-2 border-white shadow-sm flex-shrink-0 bg-white flex items-center justify-center"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border-2 border-white shadow-sm flex-shrink-0 bg-white flex items-center justify-center"
               >
-                <DinoIcon color={owner === 'A' ? '#3b82f6' : '#ef4444'} size={24} />
+                <DinoIcon color={owner === 'A' ? '#3b82f6' : '#ef4444'} size={18} />
               </motion.div>
             ))}
           </AnimatePresence>
           {game.finishedPieces.length === 0 && (
-            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest opacity-30">等待抵達...</div>
+            <div className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-widest opacity-30">等待抵達...</div>
           )}
         </div>
       </div>
@@ -916,13 +920,13 @@ export default function App() {
       </div>
 
       {/* Spinner & Instructions Wrapper */}
-      <div className="relative z-[150] flex flex-row items-end justify-center gap-8 md:gap-16 mt-8">
+      <div className="relative z-[150] flex flex-col sm:flex-row items-center sm:items-end justify-center gap-6 sm:gap-16 mt-6 sm:mt-8 w-full max-w-md">
         {/* Left Column: BANK + Instructions */}
-        <div className="flex flex-col items-center gap-4 w-[250px]">
+        <div className="flex flex-col items-center gap-4 w-full sm:w-[180px]">
           {/* Banked Spins Area - Half Board Width */}
-          <div className="w-full bg-stone-100/80 backdrop-blur-sm rounded-2xl border-2 border-dashed border-stone-300 p-3 flex flex-col items-center gap-2">
-            <div className="text-[10px] font-black text-stone-400 uppercase tracking-widest">BANKED SPINS</div>
-            <div className="flex flex-wrap justify-center gap-2 min-h-[40px] items-center">
+          <div className="w-full bg-stone-100/80 backdrop-blur-sm rounded-2xl border-2 border-dashed border-stone-300 p-2 sm:p-3 flex flex-col items-center gap-1.5 sm:gap-2">
+            <div className="text-[9px] sm:text-[10px] font-black text-stone-400 uppercase tracking-widest">BANKED SPINS</div>
+            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 min-h-[36px] sm:min-h-[40px] items-center">
               <AnimatePresence>
                 {game.bankedSpins.map((val, i) => (
                   <motion.button
@@ -931,7 +935,7 @@ export default function App() {
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0, y: 10 }}
                     onClick={() => setGame(prev => ({ ...prev, selectedSpinIndex: i, status: 'moving' }))}
-                    className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center font-black shadow-sm transition-all
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl border-2 flex items-center justify-center font-black shadow-sm transition-all text-sm sm:text-base
                       ${game.selectedSpinIndex === i 
                         ? 'bg-yellow-400 border-stone-900 text-stone-900 scale-110 z-10' 
                         : 'bg-white border-stone-200 text-stone-400 hover:border-stone-400'}
@@ -942,7 +946,7 @@ export default function App() {
                 ))}
               </AnimatePresence>
               {game.bankedSpins.length === 0 && (
-                <div className="text-[9px] font-bold text-stone-300 italic">SPIN TO BANK MOVES</div>
+                <div className="text-[8px] sm:text-[9px] font-bold text-stone-300 italic">SPIN TO BANK MOVES</div>
               )}
             </div>
           </div>
@@ -953,16 +957,16 @@ export default function App() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowInstructions(true)}
-              className="bg-white/90 backdrop-blur-md px-6 py-2 rounded-full border-2 border-stone-800 shadow-md text-stone-800 font-black text-sm flex items-center gap-2 hover:bg-white transition-colors w-full justify-center"
+              className="bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full border-2 border-stone-800 shadow-md text-stone-800 font-black text-xs flex items-center gap-2 hover:bg-white transition-colors w-full justify-center"
             >
-              <span className="text-lg">💡</span> 遊戲玩法
+              <span className="text-base">💡</span> 遊戲玩法
             </motion.button>
-            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-tighter">HOW TO PLAY</div>
+            <div className="text-[9px] font-bold text-stone-400 uppercase tracking-tighter">HOW TO PLAY</div>
           </div>
         </div>
 
         {/* Right Column: Spinner Area */}
-        <div className="w-40 h-40 flex items-center justify-center">
+        <div className="w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center -ml-4 sm:-ml-12">
           <div className="relative w-full h-full flex items-center justify-center">
             {/* Circular Text - Centered around the button */}
             <AnimatePresence>
@@ -1010,7 +1014,7 @@ export default function App() {
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSpin}
                 disabled={game.isSpinning || !!game.winner || game.remainingSpins === 0}
-                className={`w-24 h-24 rounded-full border-[8px] flex items-center justify-center text-3xl font-black shadow-2xl transition-all relative z-10
+                className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full border-[8px] flex items-center justify-center text-3xl sm:text-4xl font-black shadow-2xl transition-all relative z-10
                   ${showRainbow ? 'animate-[rainbow_2s_linear_infinite] border-white text-white' : ''}
                   ${game.remainingSpins > 0 && !game.isSpinning 
                     ? (game.currentPlayer === 'A' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-red-500 bg-red-50 text-red-600') + ' cursor-pointer' 
@@ -1066,7 +1070,7 @@ function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking
         mass: 0.8,
       }}
       style={{ zIndex: piece.animationPath ? 100 : 10 }}
-      className={`absolute w-[54px] h-[54px] -ml-[27px] -mt-[27px] rounded-2xl border-2 border-white shadow-lg flex items-center justify-center cursor-pointer pointer-events-auto bg-white
+      className={`absolute w-[44px] h-[44px] sm:w-[54px] sm:h-[54px] -ml-[22px] -mt-[22px] sm:-ml-[27px] sm:-mt-[27px] rounded-xl sm:rounded-2xl border-2 border-white shadow-lg flex items-center justify-center cursor-pointer pointer-events-auto bg-white
         ${canMove ? 'ring-4 ring-yellow-400 ring-offset-2 animate-pulse' : ''}
       `}
       onClick={(e) => {
@@ -1082,27 +1086,27 @@ function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking
             exit={{ opacity: 0 }}
             className="absolute z-50 pointer-events-none whitespace-nowrap"
           >
-            <div className="bg-red-600 text-white font-black text-sm px-3 py-1 rounded border-2 border-white shadow-lg rotate-12 flex items-center gap-1">
+            <div className="bg-red-600 text-white font-black text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded border-2 border-white shadow-lg rotate-12 flex items-center gap-1">
               <span>KICK</span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <DinoIcon color={piece.owner === 'A' ? '#3b82f6' : '#ef4444'} size={36} />
+      <DinoIcon color={piece.owner === 'A' ? '#3b82f6' : '#ef4444'} size={piece.animationPath ? 36 : 28} />
 
       {isAngry && (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="absolute -top-4 -right-4 text-2xl"
+          className="absolute -top-3 -right-3 sm:-top-4 sm:-right-4 text-xl sm:text-2xl"
         >
           😡
         </motion.div>
       )}
 
       {stackSize > 1 && (
-        <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-black text-stone-900 border-2 border-stone-200">
+        <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black text-stone-900 border-2 border-stone-200">
           {stackSize}
         </div>
       )}
