@@ -21,6 +21,28 @@ const KICK_IMAGES = [
   "https://storage.googleapis.com/mcp-prod-models-image-uploads/1742332346123-1234567890123.png"
 ];
 
+// Dinosaur Icon Component - Improved more detailed version
+const DinoIcon = ({ color, size = 24 }: { color: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* Body */}
+    <path 
+      d="M19 6C19 4.34315 17.6569 3 16 3H12C10.3431 3 9 4.34315 9 6V8H7C5.34315 8 4 9.34315 4 11V13C4 14.6569 5.34315 16 7 16H8V19C8 20.1046 8.89543 21 10 21H12C13.1046 21 14 20.1046 14 19V16H16C17.6569 16 19 14.6569 19 13V11H21C22.1046 11 23 10.1046 23 9V7C23 5.89543 22.1046 5 21 5H19V6Z" 
+      fill={color} 
+    />
+    {/* Eye */}
+    <circle cx="16" cy="7.5" r="1.2" fill="white" />
+    {/* Spikes */}
+    <path d="M9 4L7 6V8H9V4Z" fill={color} filter="brightness(0.8)" />
+    <path d="M12 2L10 4V6H12V2Z" fill={color} filter="brightness(0.8)" />
+    <path d="M15 2L13 4V6H15V2Z" fill={color} filter="brightness(0.8)" />
+    {/* Belly/Detail */}
+    <path d="M7 11H9V13H7V11Z" fill="white" fillOpacity="0.2" />
+    <path d="M10 13H12V15H10V13Z" fill="white" fillOpacity="0.2" />
+    {/* Tail */}
+    <path d="M4 11L2 13V15L4 13V11Z" fill={color} />
+  </svg>
+);
+
 export default function App() {
   const [game, setGame] = useState<GameState>({
     pieces: INITIAL_PIECES,
@@ -37,25 +59,27 @@ export default function App() {
     finishedPieces: [],
   });
 
-  const [kickedPieceId, setKickedPieceId] = useState<number | null>(null);
   const [showFlash, setShowFlash] = useState(false);
-  const [showBattle, setShowBattle] = useState(false);
-  const [battleCountdown, setBattleCountdown] = useState(10);
-  const [battleImageIndex, setBattleImageIndex] = useState(0);
+  const [showRainbow, setShowRainbow] = useState(false);
+  const [kickedPieceId, setKickedPieceId] = useState<number | null>(null);
+  const [showKickEffect, setShowKickEffect] = useState<number | null>(null);
   const [finishedPieceId, setFinishedPieceId] = useState<number | null>(null);
   const [displaySpinValue, setDisplaySpinValue] = useState<number>(1);
   const [hasSpun, setHasSpun] = useState(false);
   const [possibleMoves, setPossibleMoves] = useState<{ pos: number; dist: number; pathStart: number | null }[]>([]);
 
   // Sound Effects
-  const playSound = useCallback((type: 'turn' | 'spin' | 'move' | 'kick' | 'win') => {
+  const playSound = useCallback((type: 'turn' | 'spin' | 'move' | 'kick' | 'win' | 'sparkle' | 'celebration' | 'taunt') => {
     if (type === 'win') return; // YES音效取消
     const sounds = {
       turn: 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3',
-      spin: 'https://assets.mixkit.co/active_storage/sfx/2011/2011-preview.mp3', // Fast ticking
-      move: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3',
+      spin: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3', // Button click sound
+      move: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3', // Heavy footstep
       kick: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3',
       win: 'https://assets.mixkit.co/active_storage/sfx/2014/2014-preview.mp3',
+      sparkle: 'https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3', // Sparkle/Magic sound
+      celebration: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', // Crowd cheering
+      taunt: 'https://assets.mixkit.co/active_storage/sfx/2015/2015-preview.mp3', // Laugh/Mocking sound
     };
     const audio = new Audio(sounds[type]);
     audio.volume = 0.5;
@@ -104,7 +128,12 @@ export default function App() {
         if (value === 4 || value === 5) {
           extraSpins = 1;
           setShowFlash(true);
-          setTimeout(() => setShowFlash(false), 1000);
+          setShowRainbow(true);
+          playSound('sparkle');
+          setTimeout(() => {
+            setShowFlash(false);
+            setShowRainbow(false);
+          }, 2000);
         }
 
         setGame(prev => {
@@ -160,21 +189,60 @@ export default function App() {
     let isFinished = false;
     let newFinishedPieces = [...game.finishedPieces];
 
-    if (finalDistance >= 20) {
+    if (finalPos === -2) {
       isFinished = true;
       setFinishedPieceId(pieceId);
+      playSound('celebration');
       setTimeout(() => setFinishedPieceId(null), 2000);
     }
+
+    // Calculate path for animation
+    let initialPathStart: number | null = piece.pathStart || null;
+    if (piece.position !== -1 && initialPathStart === null) {
+      for (const s in SHORTCUTS) {
+        const p = SHORTCUTS[parseInt(s)];
+        if (p.includes(piece.position)) {
+          initialPathStart = parseInt(s);
+          break;
+        }
+      }
+    }
+
+    const findPath = (startPos: number, targetPos: number, targetDist: number, pStart: number | null): number[] | null => {
+      let queue: { pos: number; dist: number; pathStart: number | null; path: number[] }[] = [
+        { pos: startPos, dist: piece.distanceTraveled, pathStart: pStart, path: [] }
+      ];
+
+      for (let i = 0; i < spinValue; i++) {
+        let nextQueue: typeof queue = [];
+        queue.forEach(state => {
+          const nexts = findNext(state.pos, state.dist, state.pathStart);
+          nexts.forEach(n => {
+            nextQueue.push({ ...n, path: [...state.path, n.pos] });
+          });
+        });
+        queue = nextQueue;
+      }
+
+      const found = queue.find(q => q.pos === targetPos && q.dist === targetDist);
+      return found ? found.path : null;
+    };
+
+    const moveInfo = possibleMoves.find(m => m.pos === finalPos && m.dist === finalDistance);
+    const pathNodes = findPath(piece.position, finalPos, finalDistance, moveInfo?.pathStart ?? initialPathStart) || [finalPos];
+    const animationPath = pathNodes.map(nodeId => {
+      if (nodeId === -2) return { x: -8, y: 10 };
+      return BOARD_NODES[nodeId] || { x: 50, y: 50 };
+    });
 
     // Update moving pieces
     movingPieces.forEach(p => {
       const idx = newPieces.findIndex(np => np.id === p.id);
       if (isFinished) {
-        newPieces[idx] = { ...newPieces[idx], position: -2, distanceTraveled: finalDistance, isFinished: true, pathStart: null };
+        newPieces[idx] = { ...newPieces[idx], position: -2, distanceTraveled: finalDistance, isFinished: true, pathStart: null, animationPath };
         newFinishedPieces.push(p.owner);
       } else {
-        const moveInfo = possibleMoves.find(m => m.pos === finalPos && m.dist === finalDistance);
-        newPieces[idx] = { ...newPieces[idx], position: finalPos, distanceTraveled: finalDistance, pathStart: moveInfo?.pathStart ?? null };
+        newPieces[idx] = { ...newPieces[idx], position: finalPos, distanceTraveled: finalDistance, pathStart: moveInfo?.pathStart ?? null, animationPath };
       }
     });
 
@@ -183,37 +251,54 @@ export default function App() {
 
     // Check for kicking
     let extraSpinFromKick = 0;
+    let kickedIds: number[] = [];
     if (!isFinished) {
       const opponentsAtTarget = newPieces.filter(p => p.position === finalPos && p.owner !== game.currentPlayer && !p.isFinished);
       if (opponentsAtTarget.length > 0) {
         extraSpinFromKick = 1;
         playSound('kick');
         
-        // Kick Animation with 10s countdown
-        setBattleCountdown(10);
-        setShowBattle(true);
-        
-        const timer = setInterval(() => {
-          setBattleCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              setShowBattle(false);
-              return 0;
-            }
-            // Randomly change image every second for "random play" effect
-            setBattleImageIndex(Math.floor(Math.random() * KICK_IMAGES.length));
-            return prev - 1;
-          });
-        }, 1000);
-
+        // Kick Animation first, then show image
         opponentsAtTarget.forEach(p => {
           const idx = newPieces.findIndex(np => np.id === p.id);
-          newPieces[idx] = { ...newPieces[idx], position: -1, distanceTraveled: 0, pathStart: null };
+          const currentCoord = BOARD_NODES[p.position] || { x: 50, y: 50 };
+          const homeCoord = HOME_POSITIONS[p.owner][p.id % 4];
+          
+          // Arched path back to home
+          const kickPath = [
+            currentCoord,
+            { x: (currentCoord.x + homeCoord.x) / 2, y: Math.min(currentCoord.y, homeCoord.y) - 20 },
+            homeCoord
+          ];
+
+          newPieces[idx] = { ...newPieces[idx], position: -1, distanceTraveled: 0, pathStart: null, animationPath: kickPath };
+          kickedIds.push(p.id);
           setKickedPieceId(p.id);
         });
+
+        // Show local KICK effect
+        setShowKickEffect(opponentsAtTarget[0].id);
+        playSound('kick');
+        playSound('taunt');
+        setTimeout(() => setShowKickEffect(null), 1200);
+
         setTimeout(() => setKickedPieceId(null), 1000);
       }
     }
+
+    // Clear animation paths after they complete
+    const animDuration = kickedIds.length > 0 ? 1000 : animationPath.length * 200;
+    setTimeout(() => {
+      setGame(prev => ({
+        ...prev,
+        pieces: prev.pieces.map(p => {
+          if (movingPieces.some(mp => mp.id === p.id) || kickedIds.includes(p.id)) {
+            return { ...p, animationPath: null };
+          }
+          return p;
+        })
+      }));
+    }, animDuration + 100);
 
     const nextStepsCount = { ...game.stepsCount, [game.currentPlayer]: game.stepsCount[game.currentPlayer] + spinValue };
 
@@ -267,51 +352,41 @@ export default function App() {
     setHasSpun(false);
   };
 
-  const getPossibleFinalPositions = (piece: Piece, spinValue: number) => {
-    const findNext = (pos: number, dist: number, pathStart: number | null): { pos: number; dist: number; pathStart: number | null }[] => {
-      // If already finished
-      if (pos === -2) return [{ pos: -2, dist: dist + 1, pathStart: null }];
-      
-      // Starting from home
-      if (pos === -1) return [{ pos: 1, dist: 1, pathStart: null }];
+  const findNext = (pos: number, dist: number, pathStart: number | null): { pos: number; dist: number; pathStart: number | null }[] => {
+    // If already finished
+    if (pos === -2) return [{ pos: -2, dist: dist + 1, pathStart: null }];
+    
+    // Starting from home
+    if (pos === -1) return [{ pos: 1, dist: 1, pathStart: null }];
 
-      // Node 0 is the finish entry - once reached, piece is finished
-      if (pos === 0 && dist >= 10) {
-        return [{ pos: -2, dist: dist + 1, pathStart: null }];
+    // Node 0 is the finish entry - once reached, piece is finished
+    if (pos === 0 && dist >= 10) {
+      return [{ pos: -2, dist: dist + 1, pathStart: null }];
+    }
+
+    // If in a diagonal path
+    if (pathStart !== null) {
+      const path = SHORTCUTS[pathStart];
+      // If we are at the starting corner of this shortcut
+      if (pos === pathStart) {
+        return [{ pos: path[0], dist: dist + 1, pathStart }];
       }
-
-      // Special case: Center node 23 allows branching if we are on a shortcut
-      if (pos === 23 && pathStart !== null) {
-        return [
-          { pos: 24, dist: dist + 1, pathStart: 5 },  // Towards 15
-          { pos: 28, dist: dist + 1, pathStart: 10 }, // Towards 0
-          { pos: 22, dist: dist + 1, pathStart: 15 }, // Towards 5
-          { pos: 27, dist: dist + 1, pathStart: 0 },  // Towards 10
-        ];
+      const idx = path.indexOf(pos);
+      if (idx !== -1 && idx < path.length - 1) {
+        const nextPos = path[idx + 1];
+        // If next position is the destination corner, add saved distance
+        const extraDist = [0, 5, 10, 15].includes(nextPos) ? 5 : 1;
+        return [{ pos: nextPos, dist: dist + extraDist, pathStart: [0, 5, 10, 15].includes(nextPos) ? null : pathStart }];
       }
-
-      // If in a diagonal path
-      if (pathStart !== null) {
-        const path = SHORTCUTS[pathStart];
-        // If we are at the starting corner of this shortcut
-        if (pos === pathStart) {
-          return [{ pos: path[0], dist: dist + 1, pathStart }];
-        }
-        const idx = path.indexOf(pos);
-        if (idx !== -1 && idx < path.length - 1) {
-          const nextPos = path[idx + 1];
-          // If next position is the destination corner, add saved distance
-          const extraDist = [0, 5, 10, 15].includes(nextPos) ? 5 : 1;
-          return [{ pos: nextPos, dist: dist + extraDist, pathStart: [0, 5, 10, 15].includes(nextPos) ? null : pathStart }];
-        }
-        // End of diagonal - return to outer loop
-        return [{ pos: (pos + 1) % 20, dist: dist + 1, pathStart: null }];
-      }
-
-      // Outer loop
+      // End of diagonal - return to outer loop
       return [{ pos: (pos + 1) % 20, dist: dist + 1, pathStart: null }];
-    };
+    }
 
+    // Outer loop
+    return [{ pos: (pos + 1) % 20, dist: dist + 1, pathStart: null }];
+  };
+
+  const getPossibleFinalPositions = (piece: Piece, spinValue: number) => {
     let currentStates: { pos: number; dist: number; pathStart: number | null }[] = [];
     
     // Regular node - find if it's already on a diagonal
@@ -332,7 +407,7 @@ export default function App() {
       currentStates.push({ pos: piece.position, dist: piece.distanceTraveled, pathStart: null });
       currentStates.push({ pos: piece.position, dist: piece.distanceTraveled, pathStart: piece.position });
     } else if (piece.position === 23) {
-      // Center: choose towards BL (path 5) or BR (path 10)
+      // Center: choose towards Bottom-Left (5) or Bottom-Right (10) as requested
       currentStates.push({ pos: piece.position, dist: piece.distanceTraveled, pathStart: 5 });
       currentStates.push({ pos: piece.position, dist: piece.distanceTraveled, pathStart: 10 });
     } else {
@@ -426,7 +501,7 @@ export default function App() {
   const renderPieces = () => {
     const posGroups: Record<number, Piece[]> = {};
     game.pieces.forEach(p => {
-      if (p.isFinished) return;
+      if (p.isFinished && !p.animationPath && finishedPieceId !== p.id) return;
       if (!posGroups[p.position]) posGroups[p.position] = [];
       posGroups[p.position].push(p);
     });
@@ -447,6 +522,7 @@ export default function App() {
               coord={{ x: homeCoord.x, y: homeCoord.y }} 
               onClick={() => handlePieceClick(p.id)}
               isKicked={kickedPieceId === p.id}
+              isKicking={showKickEffect === p.id}
               canMove={game.status === 'moving' && game.currentPlayer === p.owner && !game.selectedPieceId}
             />
           );
@@ -463,7 +539,8 @@ export default function App() {
           coord={{ x: coord.x, y: coord.y }} 
           stackSize={pieces.length}
           onClick={() => handlePieceClick(pieces[0].id)}
-          isFinished={finishedPieceId === pieces[0].id}
+          isFinished={pieces[0].isFinished || finishedPieceId === pieces[0].id}
+          isKicking={pieces.some(p => showKickEffect === p.id)}
           canMove={game.bankedSpins.length > 0 && game.currentPlayer === owner && !game.selectedPieceId && !game.isSpinning}
         />
       );
@@ -473,7 +550,7 @@ export default function App() {
     possibleMoves.forEach((move, i) => {
       const isFinish = move.pos === -2;
       const coord = isFinish 
-        ? { x: -8, y: 10 } // Position in the finish zone
+        ? { x: BOARD_NODES[0].x - 10, y: BOARD_NODES[0].y } // Position left of START node
         : (BOARD_NODES[move.pos] || { x: 50, y: 50 });
       
       elements.push(
@@ -481,8 +558,11 @@ export default function App() {
           key={`move-target-${i}`}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 0.8 }}
+          whileHover={{ scale: 1.1, opacity: 1 }}
           style={{ left: `${coord.x}%`, top: `${coord.y}%` }}
-          className="absolute w-8 h-8 -ml-4 -mt-4 bg-yellow-400 rounded-full border-2 border-white shadow-lg cursor-pointer z-50 flex items-center justify-center pointer-events-auto"
+          className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full border-2 border-white shadow-lg cursor-pointer z-50 flex items-center justify-center pointer-events-auto
+            ${isFinish ? 'bg-gradient-to-br from-yellow-300 to-orange-400 animate-pulse' : 'bg-yellow-400'}
+          `}
           onClick={(e) => {
             e.stopPropagation();
             if (game.selectedPieceId !== null) {
@@ -490,7 +570,10 @@ export default function App() {
             }
           }}
         >
-          <span className="text-[10px] font-bold text-stone-900">GO</span>
+          <div className="flex flex-col items-center">
+            {isFinish && <Sparkles size={12} className="text-stone-900 mb-0.5" />}
+            <span className="text-[10px] font-bold text-stone-900 leading-none">{isFinish ? 'FINISH' : 'GO'}</span>
+          </div>
         </motion.div>
       );
     });
@@ -512,10 +595,43 @@ export default function App() {
             <motion.div
               initial={{ scale: 0.8, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-stone-900"
+              className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-stone-900 relative overflow-hidden"
             >
-              <div className="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-stone-900 shadow-lg">
-                <Trophy size={40} className="text-stone-900" />
+              {/* Confetti-like particles */}
+              {[...Array(12)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ y: 100, x: 0, opacity: 1 }}
+                  animate={{ 
+                    y: -200, 
+                    x: (i - 6) * 40, 
+                    opacity: 0,
+                    rotate: 360
+                  }}
+                  transition={{ 
+                    duration: 2, 
+                    repeat: Infinity, 
+                    delay: i * 0.1,
+                    ease: "easeOut"
+                  }}
+                  className="absolute bottom-0 left-1/2 w-3 h-3 rounded-full"
+                  style={{ 
+                    backgroundColor: ['#3b82f6', '#ef4444', '#fbbf24', '#10b981'][i % 4] 
+                  }}
+                />
+              ))}
+
+              <div className="relative w-24 h-24 mx-auto mb-6">
+                <div className="absolute inset-0 bg-yellow-400 rounded-full flex items-center justify-center border-4 border-stone-900 shadow-lg">
+                  <Trophy size={40} className="text-stone-900" />
+                </div>
+                <motion.div 
+                  animate={{ y: [0, -10, 0], rotate: [0, 10, -10, 0] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="absolute -bottom-2 -right-2 w-12 h-12 bg-white rounded-xl border-2 border-stone-900 shadow-md flex items-center justify-center"
+                >
+                  <DinoIcon color={game.winner === 'A' ? '#3b82f6' : '#ef4444'} size={32} />
+                </motion.div>
               </div>
               <h2 className="text-3xl font-black mb-2">恭喜獲勝！</h2>
               <p className="text-stone-600 mb-8 font-bold">
@@ -535,15 +651,15 @@ export default function App() {
 
       {/* Header */}
       <div className="w-full max-w-md flex justify-between items-center mb-4 bg-white p-3 rounded-2xl shadow-sm border border-stone-200">
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full transition-colors ${game.currentPlayer === 'A' ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
-          <User size={18} />
-          <span className="font-bold">玩家 A</span>
-          <span className="text-xs bg-white px-2 rounded-full border border-blue-200">{game.stepsCount.A} 步</span>
+        <div className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all ${game.currentPlayer === 'B' ? 'bg-red-100 text-red-700 scale-105 shadow-sm' : 'bg-stone-50 text-stone-400'}`}>
+          <DinoIcon color={game.currentPlayer === 'B' ? '#ef4444' : '#a8a29e'} size={18} />
+          <span className="font-black">電腦 B</span>
+          <span className="text-[10px] bg-white px-2 rounded-full border border-red-200 font-bold">{game.stepsCount.B} 步</span>
         </div>
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full transition-colors ${game.currentPlayer === 'B' ? 'bg-red-100 text-red-700' : 'bg-stone-100 text-stone-500'}`}>
-          <Cpu size={18} />
-          <span className="font-bold">電腦 B</span>
-          <span className="text-xs bg-white px-2 rounded-full border border-red-200">{game.stepsCount.B} 步</span>
+        <div className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all ${game.currentPlayer === 'A' ? 'bg-blue-100 text-blue-700 scale-105 shadow-sm' : 'bg-stone-50 text-stone-400'}`}>
+          <DinoIcon color={game.currentPlayer === 'A' ? '#3b82f6' : '#a8a29e'} size={18} />
+          <span className="font-black">玩家 A</span>
+          <span className="text-[10px] bg-white px-2 rounded-full border border-blue-200 font-bold">{game.stepsCount.A} 步</span>
         </div>
       </div>
 
@@ -603,40 +719,6 @@ export default function App() {
           {renderPieces()}
         </div>
 
-        {/* Battle Overlay */}
-        <AnimatePresence>
-          {showBattle && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer pointer-events-auto"
-              onClick={() => setShowBattle(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.5, rotate: -10 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 1.5, rotate: 10 }}
-                className="relative"
-              >
-                <img 
-                  src={KICK_IMAGES[battleImageIndex]} 
-                  alt="Battle" 
-                  className="w-[80vw] h-[80vw] max-w-[500px] max-h-[500px] rounded-3xl border-8 border-yellow-400 shadow-2xl object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute -top-6 -right-6 bg-red-600 text-white font-black text-4xl px-6 py-2 rounded-xl border-4 border-white shadow-lg rotate-12">
-                  KICK!
-                </div>
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-yellow-400 text-stone-900 font-black text-2xl px-8 py-2 rounded-full border-4 border-stone-900 shadow-lg flex items-center gap-3">
-                  <span>{battleCountdown}s</span>
-                  <span className="text-sm opacity-60 uppercase tracking-widest">Click to Skip</span>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Banked Spins Area - Right Side */}
         <div className="absolute -right-20 top-0 bottom-0 w-16 flex flex-col items-center py-4 gap-3">
           <div className="text-[10px] font-black text-stone-400 uppercase rotate-90 mb-4">BANK</div>
@@ -681,8 +763,10 @@ export default function App() {
                 key={`finished-${i}`}
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                className={`w-7 h-7 rounded-full border-2 border-white shadow-sm flex-shrink-0 ${owner === 'A' ? 'bg-blue-500' : 'bg-red-500'}`}
-              />
+                className={`w-9 h-9 rounded-xl border-2 border-white shadow-sm flex-shrink-0 bg-white flex items-center justify-center`}
+              >
+                <DinoIcon color={owner === 'A' ? '#3b82f6' : '#ef4444'} size={20} />
+              </motion.div>
             ))}
           </div>
         </div>
@@ -741,6 +825,7 @@ export default function App() {
               onClick={handleSpin}
               disabled={game.isSpinning || !!game.winner || game.remainingSpins === 0}
               className={`w-24 h-24 rounded-full border-[8px] flex items-center justify-center text-3xl font-black shadow-2xl transition-all relative z-10
+                ${showRainbow ? 'animate-[rainbow_2s_linear_infinite] border-white text-white' : ''}
                 ${game.remainingSpins > 0 && !game.isSpinning 
                   ? (game.currentPlayer === 'A' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-red-500 bg-red-50 text-red-600') + ' cursor-pointer' 
                   : 'border-stone-300 bg-stone-100 text-stone-400 cursor-not-allowed'}
@@ -763,32 +848,36 @@ interface PieceVisualProps {
   stackSize?: number;
   onClick: () => void;
   isKicked?: boolean;
+  isKicking?: boolean;
   isFinished?: boolean;
   canMove?: boolean;
   key?: React.Key;
 }
 
-function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isFinished, canMove }: PieceVisualProps) {
+function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking, isFinished, canMove }: PieceVisualProps) {
+  const left = piece.animationPath ? piece.animationPath.map(p => `${p.x}%`) : `${coord.x}%`;
+  const top = piece.animationPath ? piece.animationPath.map(p => `${p.y}%`) : `${coord.y}%`;
+
   return (
     <motion.div
       layout
       initial={false}
       animate={{ 
-        left: `${coord.x}%`, 
-        top: `${coord.y}%`,
-        scale: isKicked ? [1, 1.5, 0] : isFinished ? [1, 1.5, 0] : 1,
-        opacity: isKicked || isFinished ? 0 : 1,
-        rotate: isKicked ? 360 : 0,
+        left, 
+        top,
+        scale: isKicked ? [1, 1.5, 1] : isFinished ? [1, 1.5, 0] : 1,
+        opacity: isFinished ? 0 : 1,
+        rotate: isKicked ? [0, 180, 360] : 0,
       }}
       transition={{ 
-        type: 'spring', 
+        type: piece.animationPath ? 'tween' : 'spring',
+        duration: piece.animationPath ? (isKicked ? 0.8 : piece.animationPath.length * 0.2) : 0.5,
+        ease: "easeInOut",
         stiffness: 400, 
         damping: 25,
         mass: 0.8,
-        scale: (isKicked || isFinished) ? { type: 'tween', duration: 0.5, ease: "easeInOut" } : { type: 'spring' }
       }}
-      className={`absolute w-6 h-6 -ml-3 -mt-3 rounded-full border-2 border-white shadow-md flex items-center justify-center cursor-pointer pointer-events-auto z-10
-        ${piece.owner === 'A' ? 'bg-blue-500' : 'bg-red-500'}
+      className={`absolute w-9 h-9 -ml-[18px] -mt-[18px] rounded-xl border-2 border-white shadow-lg flex items-center justify-center cursor-pointer pointer-events-auto z-10 bg-white
         ${canMove ? 'ring-4 ring-yellow-400 ring-offset-2 animate-pulse' : ''}
       `}
       onClick={(e) => {
@@ -796,8 +885,28 @@ function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isFinishe
         onClick();
       }}
     >
+      <AnimatePresence>
+        {isKicking && (
+          <motion.div
+            initial={{ y: 0, opacity: 0, scale: 0 }}
+            animate={{ y: -40, opacity: 1, scale: 1.5 }}
+            exit={{ opacity: 0 }}
+            className="absolute z-50 pointer-events-none whitespace-nowrap"
+          >
+            <div className="bg-red-600 text-white font-black text-xs px-2 py-0.5 rounded border border-white shadow-lg rotate-12 flex items-center gap-1">
+              <span>KICK!</span>
+              <span>😈</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <DinoIcon color={piece.owner === 'A' ? '#3b82f6' : '#ef4444'} size={24} />
+
       {stackSize > 1 && (
-        <span className="text-[10px] font-black text-white">X{stackSize}</span>
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center text-[8px] font-black text-stone-900 border border-stone-200">
+          {stackSize}
+        </div>
       )}
       {isFinished && (
         <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-yellow-500">

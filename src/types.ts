@@ -8,6 +8,7 @@ export interface Piece {
   distanceTraveled: number; // 0 to 20
   isFinished: boolean;
   pathStart?: number | null; // Track which shortcut the piece is on
+  animationPath?: { x: number; y: number }[] | null;
 }
 
 export interface GameState {
