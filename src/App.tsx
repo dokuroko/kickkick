@@ -750,7 +750,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="w-full max-w-md flex flex-col sm:flex-row justify-between items-stretch mb-3 gap-2 sm:gap-4">
+      <div className="w-full max-w-md flex flex-row justify-between items-stretch mb-3 gap-2 sm:gap-4">
         {/* Player B Info */}
         <div className={`flex-1 flex flex-col p-2 sm:p-3 rounded-2xl shadow-sm border transition-all ${game.currentPlayer === 'B' ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : 'bg-white border-stone-200'}`}>
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -920,7 +920,7 @@ export default function App() {
       </div>
 
       {/* Spinner & Instructions Wrapper */}
-      <div className="relative z-[150] flex flex-col sm:flex-row items-center sm:items-end justify-center gap-6 sm:gap-16 mt-6 sm:mt-8 w-full max-w-md">
+      <div className="relative z-[150] flex flex-row items-end justify-center gap-4 sm:gap-16 mt-6 sm:mt-8 w-full max-w-md">
         {/* Left Column: BANK + Instructions */}
         <div className="flex flex-col items-center gap-4 w-full sm:w-[180px]">
           {/* Banked Spins Area - Half Board Width */}
