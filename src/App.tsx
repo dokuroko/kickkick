@@ -43,6 +43,16 @@ const DinoIcon = ({ color, size = 24 }: { color: string; size?: number }) => (
   </svg>
 );
 
+// Meat Icon Component
+const MeatIcon = ({ size = 24 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17 5C15.5 5 14.5 6 14 7.5C13.5 9 13.5 11 14.5 12.5C15.5 14 17.5 14.5 19 14C20.5 13.5 21.5 12 21.5 10C21.5 7.5 19.5 5 17 5Z" fill="#F87171" stroke="#1C1917" strokeWidth="1.5"/>
+    <path d="M17 8C17.5 8 18 8.5 18 9C18 9.5 17.5 10 17 10C16.5 10 16 9.5 16 9C16 8.5 16.5 8 17 8Z" fill="white"/>
+    <path d="M14 10L4 20" stroke="#1C1917" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M7 14L5 16" stroke="#1C1917" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
 export default function App() {
   const [game, setGame] = useState<GameState>({
     pieces: INITIAL_PIECES,
@@ -53,6 +63,7 @@ export default function App() {
     status: 'spinning',
     winner: null,
     stepsCount: { A: 0, B: 0 },
+    kickedCount: { A: 0, B: 0 },
     isSpinning: false,
     message: "玩家 A 的回合，請轉動轉盤",
     selectedPieceId: null,
@@ -61,12 +72,14 @@ export default function App() {
 
   const [showFlash, setShowFlash] = useState(false);
   const [showRainbow, setShowRainbow] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const [kickedPieceId, setKickedPieceId] = useState<number | null>(null);
   const [showKickEffect, setShowKickEffect] = useState<number | null>(null);
   const [finishedPieceId, setFinishedPieceId] = useState<number | null>(null);
   const [displaySpinValue, setDisplaySpinValue] = useState<number>(1);
   const [hasSpun, setHasSpun] = useState(false);
   const [possibleMoves, setPossibleMoves] = useState<{ pos: number; dist: number; pathStart: number | null }[]>([]);
+  const [angryPieceIds, setAngryPieceIds] = useState<number[]>([]);
 
   // Sound Effects
   const playSound = useCallback((type: 'turn' | 'spin' | 'move' | 'kick' | 'win' | 'sparkle' | 'celebration' | 'taunt') => {
@@ -119,7 +132,15 @@ export default function App() {
     runSpinAnimation();
 
     const finalizeSpin = () => {
-      const value = Math.floor(Math.random() * 5) + 1;
+      const rand = Math.random();
+      let value;
+      if (rand < 0.65) {
+        value = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
+      } else if (rand < 0.85) {
+        value = 4;
+      } else {
+        value = 5;
+      }
       setDisplaySpinValue(value);
       setHasSpun(true);
       
@@ -274,7 +295,23 @@ export default function App() {
           newPieces[idx] = { ...newPieces[idx], position: -1, distanceTraveled: 0, pathStart: null, animationPath: kickPath };
           kickedIds.push(p.id);
           setKickedPieceId(p.id);
+          
+          // Add to angry pieces for 5 seconds
+          setAngryPieceIds(prev => [...prev, p.id]);
+          setTimeout(() => {
+            setAngryPieceIds(prev => prev.filter(id => id !== p.id));
+          }, 5000);
         });
+
+        // Update kickedCount for the player who got kicked
+        const kickedOwner = opponentsAtTarget[0].owner;
+        setGame(prev => ({
+          ...prev,
+          kickedCount: {
+            ...prev.kickedCount,
+            [kickedOwner]: prev.kickedCount[kickedOwner] + opponentsAtTarget.length
+          }
+        }));
 
         // Show local KICK effect
         setShowKickEffect(opponentsAtTarget[0].id);
@@ -490,6 +527,7 @@ export default function App() {
       status: 'spinning',
       winner: null,
       stepsCount: { A: 0, B: 0 },
+      kickedCount: { A: 0, B: 0 },
       isSpinning: false,
       message: "玩家 A 的回合，請轉動轉盤",
       selectedPieceId: null,
@@ -513,19 +551,20 @@ export default function App() {
       const isHome = pos === -1;
       
       if (isHome) {
-        pieces.forEach((p) => {
-          const homeCoord = HOME_POSITIONS[p.owner][p.id % 4];
-          elements.push(
-            <PieceVisual 
-              key={p.id} 
-              piece={p} 
-              coord={{ x: homeCoord.x, y: homeCoord.y }} 
-              onClick={() => handlePieceClick(p.id)}
-              isKicked={kickedPieceId === p.id}
-              isKicking={showKickEffect === p.id}
-              canMove={game.status === 'moving' && game.currentPlayer === p.owner && !game.selectedPieceId}
-            />
-          );
+        pieces.forEach(p => {
+          if (p.animationPath) {
+            const homeCoord = HOME_POSITIONS[p.owner][p.id % 4];
+            elements.push(
+              <PieceVisual 
+                key={p.id} 
+                piece={p} 
+                coord={{ x: homeCoord.x, y: homeCoord.y }} 
+                onClick={() => {}}
+                isKicked={kickedPieceId === p.id}
+                isAngry={angryPieceIds.includes(p.id)}
+              />
+            );
+          }
         });
         return;
       }
@@ -541,6 +580,7 @@ export default function App() {
           onClick={() => handlePieceClick(pieces[0].id)}
           isFinished={pieces[0].isFinished || finishedPieceId === pieces[0].id}
           isKicking={pieces.some(p => showKickEffect === p.id)}
+          isAngry={pieces.some(p => angryPieceIds.includes(p.id))}
           canMove={game.bankedSpins.length > 0 && game.currentPlayer === owner && !game.selectedPieceId && !game.isSpinning}
         />
       );
@@ -583,6 +623,66 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-stone-100 flex flex-col items-center justify-center p-4 font-sans text-stone-800 overflow-y-auto overflow-x-hidden">
+      {/* Instructions Modal */}
+      <AnimatePresence>
+        {showInstructions && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[400] bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setShowInstructions(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl p-8 max-w-xs w-full text-center shadow-2xl border-4 border-stone-800 relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setShowInstructions(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-stone-100 rounded-full text-stone-500 hover:bg-stone-200 transition-colors"
+              >
+                ✕
+              </button>
+              
+              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <DinoIcon color="#3b82f6" size={32} />
+              </div>
+              
+              <h3 className="text-xl font-black text-stone-800 mb-4">遊戲玩法</h3>
+              
+              <div className="space-y-4 text-left">
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-stone-800 text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                  <p className="text-sm font-bold text-stone-600">點擊轉盤決定步數 (1-5 步)。</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-stone-800 text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                  <p className="text-sm font-bold text-stone-600">轉到 <span className="text-blue-500 font-black">4</span> 或 <span className="text-blue-500 font-black">5</span> 可以獲得額外一次轉盤機會！</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-stone-800 text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                  <p className="text-sm font-bold text-stone-600">踩到對手的棋子會將其踢回起點。</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-stone-800 text-white flex items-center justify-center text-xs font-bold shrink-0">4</div>
+                  <p className="text-sm font-bold text-stone-600">最先讓 4 隻恐龍抵達終點的玩家獲勝。</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setShowInstructions(false)}
+                className="mt-8 w-full py-3 bg-stone-800 text-white font-black rounded-xl hover:bg-stone-700 transition-colors shadow-lg"
+              >
+                知道了！
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Winner Overlay */}
       <AnimatePresence>
         {game.winner && (
@@ -650,21 +750,104 @@ export default function App() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="w-full max-w-md flex justify-between items-center mb-4 bg-white p-3 rounded-2xl shadow-sm border border-stone-200">
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all ${game.currentPlayer === 'B' ? 'bg-red-100 text-red-700 scale-105 shadow-sm' : 'bg-stone-50 text-stone-400'}`}>
-          <DinoIcon color={game.currentPlayer === 'B' ? '#ef4444' : '#a8a29e'} size={18} />
-          <span className="font-black">電腦 B</span>
-          <span className="text-[10px] bg-white px-2 rounded-full border border-red-200 font-bold">{game.stepsCount.B} 步</span>
+      <div className="w-full max-w-md flex justify-between items-stretch mb-4 gap-4">
+        {/* Player B Info */}
+        <div className={`flex-1 flex flex-col items-center p-3 rounded-2xl shadow-sm border transition-all ${game.currentPlayer === 'B' ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : 'bg-white border-stone-200'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <DinoIcon color="#ef4444" size={20} />
+            <span className="font-black text-red-700">玩家 B</span>
+          </div>
+          <div className="text-[11px] font-bold text-red-600 bg-red-100/50 px-2 py-1 rounded-lg w-full text-center mb-3">
+            被踢 {game.kickedCount.B} 次 | {game.stepsCount.B} 步
+          </div>
+          <div className="flex flex-wrap justify-center gap-2 min-h-[36px]">
+            {game.pieces.filter(p => p.owner === 'B' && p.position === -1).map(p => (
+              <motion.div 
+                key={p.id} 
+                layoutId={`piece-${p.id}`}
+                className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center border-2 border-red-200 cursor-pointer relative"
+                onClick={() => handlePieceClick(p.id)}
+                whileHover={{ scale: 1.1 }}
+              >
+                <DinoIcon color="#ef4444" size={20} />
+                {angryPieceIds.includes(p.id) && (
+                  <motion.span 
+                    initial={{ scale: 0 }} 
+                    animate={{ scale: 1 }} 
+                    className="absolute -top-2 -right-2 text-lg"
+                  >
+                    😡
+                  </motion.span>
+                )}
+              </motion.div>
+            ))}
+          </div>
         </div>
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all ${game.currentPlayer === 'A' ? 'bg-blue-100 text-blue-700 scale-105 shadow-sm' : 'bg-stone-50 text-stone-400'}`}>
-          <DinoIcon color={game.currentPlayer === 'A' ? '#3b82f6' : '#a8a29e'} size={18} />
-          <span className="font-black">玩家 A</span>
-          <span className="text-[10px] bg-white px-2 rounded-full border border-blue-200 font-bold">{game.stepsCount.A} 步</span>
+
+        {/* Player A Info */}
+        <div className={`flex-1 flex flex-col items-center p-3 rounded-2xl shadow-sm border transition-all ${game.currentPlayer === 'A' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200' : 'bg-white border-stone-200'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <DinoIcon color="#3b82f6" size={20} />
+            <span className="font-black text-blue-700">玩家 A</span>
+          </div>
+          <div className="text-[11px] font-bold text-blue-600 bg-blue-100/50 px-2 py-1 rounded-lg w-full text-center mb-3">
+            被踢 {game.kickedCount.A} 次 | {game.stepsCount.A} 步
+          </div>
+          <div className="flex flex-wrap justify-center gap-2 min-h-[36px]">
+            {game.pieces.filter(p => p.owner === 'A' && p.position === -1).map(p => (
+              <motion.div 
+                key={p.id} 
+                layoutId={`piece-${p.id}`}
+                className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center border-2 border-blue-200 cursor-pointer relative"
+                onClick={() => handlePieceClick(p.id)}
+                whileHover={{ scale: 1.1 }}
+              >
+                <DinoIcon color="#3b82f6" size={20} />
+                {angryPieceIds.includes(p.id) && (
+                  <motion.span 
+                    initial={{ scale: 0 }} 
+                    animate={{ scale: 1 }} 
+                    className="absolute -top-2 -right-2 text-lg"
+                  >
+                    😡
+                  </motion.span>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Finish Zone - Horizontal Middle */}
+      <div className="w-full max-w-[500px] mb-4 bg-stone-100/50 rounded-2xl border-2 border-stone-800 p-3 flex items-center gap-4 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col border-r-2 border-stone-200 pr-4">
+          <div className="text-xl font-black text-stone-800 uppercase tracking-[0.1em] mb-1">FINISH</div>
+          <div className="flex items-center gap-2">
+            <Trophy size={14} className="text-yellow-600" />
+            <span className="text-[10px] font-bold text-stone-400 italic">抵達終點</span>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          <AnimatePresence>
+            {game.finishedPieces.map((owner, i) => (
+              <motion.div
+                key={`finished-${i}`}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="w-10 h-10 rounded-xl border-2 border-white shadow-sm flex-shrink-0 bg-white flex items-center justify-center"
+              >
+                <DinoIcon color={owner === 'A' ? '#3b82f6' : '#ef4444'} size={24} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {game.finishedPieces.length === 0 && (
+            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest opacity-30">等待抵達...</div>
+          )}
         </div>
       </div>
 
       {/* Board Container */}
-      <div className="relative w-full max-w-[500px] aspect-square bg-white rounded-3xl shadow-xl border-4 border-stone-800 mt-12">
+      <div className="relative w-full max-w-[500px] aspect-square bg-white rounded-3xl shadow-xl border-4 border-stone-800 mt-4">
         {/* SVG Background for lines */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
           {/* Outer Loop Lines */}
@@ -719,29 +902,6 @@ export default function App() {
           {renderPieces()}
         </div>
 
-        {/* Banked Spins Area - Right Side */}
-        <div className="absolute -right-20 top-0 bottom-0 w-16 flex flex-col items-center py-4 gap-3">
-          <div className="text-[10px] font-black text-stone-400 uppercase rotate-90 mb-4">BANK</div>
-          <AnimatePresence>
-            {game.bankedSpins.map((val, i) => (
-              <motion.button
-                key={`banked-${i}-${val}`}
-                initial={{ scale: 0, x: 20 }}
-                animate={{ scale: 1, x: 0 }}
-                exit={{ scale: 0, x: 20 }}
-                onClick={() => setGame(prev => ({ ...prev, selectedSpinIndex: i, status: 'moving' }))}
-                className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center font-black shadow-sm transition-all
-                  ${game.selectedSpinIndex === i 
-                    ? 'bg-yellow-400 border-stone-900 text-stone-900 scale-110 z-10' 
-                    : 'bg-white border-stone-200 text-stone-400 hover:border-stone-400'}
-                `}
-              >
-                {val}
-              </motion.button>
-            ))}
-          </AnimatePresence>
-        </div>
-
         {/* Flash Overlay */}
         <AnimatePresence>
           {showFlash && (
@@ -753,43 +913,55 @@ export default function App() {
             />
           )}
         </AnimatePresence>
-
-        {/* Finish Zone - Left Vertical */}
-        <div className="absolute -left-16 top-0 bottom-0 w-12 bg-stone-200 rounded-xl border-2 border-stone-800 flex flex-col items-center py-4 gap-2 overflow-hidden">
-          <div className="text-[12px] font-black text-stone-400 uppercase mb-4 rotate-90 whitespace-nowrap tracking-widest">FINISH</div>
-          <div className="flex flex-col gap-2">
-            {game.finishedPieces.map((owner, i) => (
-              <motion.div
-                key={`finished-${i}`}
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                className={`w-9 h-9 rounded-xl border-2 border-white shadow-sm flex-shrink-0 bg-white flex items-center justify-center`}
-              >
-                <DinoIcon color={owner === 'A' ? '#3b82f6' : '#ef4444'} size={20} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* Empty space below board */}
-      <div className="h-4 md:h-12" />
-
       {/* Spinner & Instructions Wrapper */}
-      <div className="relative md:fixed md:bottom-8 md:right-[calc(50%-300px-64px-160px)] z-[150] flex flex-col items-center gap-4">
-        {/* Instructions */}
-        <div className="w-40 flex flex-col items-center pointer-events-none">
-          <div className="bg-white/80 backdrop-blur-md px-3 py-2 rounded-2xl border border-stone-200 shadow-sm text-center w-full">
-            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">遊戲玩法</p>
-            <div className="text-[9px] font-bold text-stone-600 leading-relaxed">
-              <p>• 點擊轉盤決定步數</p>
-              <p>• 踩到對手踢回起點</p>
-              <p>• 4隻抵達終點獲勝</p>
+      <div className="relative z-[150] flex flex-row items-end justify-center gap-8 md:gap-16 mt-8">
+        {/* Left Column: BANK + Instructions */}
+        <div className="flex flex-col items-center gap-4 w-[250px]">
+          {/* Banked Spins Area - Half Board Width */}
+          <div className="w-full bg-stone-100/80 backdrop-blur-sm rounded-2xl border-2 border-dashed border-stone-300 p-3 flex flex-col items-center gap-2">
+            <div className="text-[10px] font-black text-stone-400 uppercase tracking-widest">BANKED SPINS</div>
+            <div className="flex flex-wrap justify-center gap-2 min-h-[40px] items-center">
+              <AnimatePresence>
+                {game.bankedSpins.map((val, i) => (
+                  <motion.button
+                    key={`banked-${i}-${val}`}
+                    initial={{ scale: 0, y: 10 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0, y: 10 }}
+                    onClick={() => setGame(prev => ({ ...prev, selectedSpinIndex: i, status: 'moving' }))}
+                    className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center font-black shadow-sm transition-all
+                      ${game.selectedSpinIndex === i 
+                        ? 'bg-yellow-400 border-stone-900 text-stone-900 scale-110 z-10' 
+                        : 'bg-white border-stone-200 text-stone-400 hover:border-stone-400'}
+                    `}
+                  >
+                    {val}
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+              {game.bankedSpins.length === 0 && (
+                <div className="text-[9px] font-bold text-stone-300 italic">SPIN TO BANK MOVES</div>
+              )}
             </div>
+          </div>
+
+          {/* Instructions Button */}
+          <div className="flex flex-col items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowInstructions(true)}
+              className="bg-white/90 backdrop-blur-md px-6 py-2 rounded-full border-2 border-stone-800 shadow-md text-stone-800 font-black text-sm flex items-center gap-2 hover:bg-white transition-colors w-full justify-center"
+            >
+              <span className="text-lg">💡</span> 遊戲玩法
+            </motion.button>
+            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-tighter">HOW TO PLAY</div>
           </div>
         </div>
 
-        {/* Spinner Area */}
+        {/* Right Column: Spinner Area */}
         <div className="w-40 h-40 flex items-center justify-center">
           <div className="relative w-full h-full flex items-center justify-center">
             {/* Circular Text - Centered around the button */}
@@ -829,7 +1001,7 @@ export default function App() {
                     +{game.remainingSpins}
                   </div>
                 )}
-                <div className="text-xl drop-shadow-sm scale-x-[0.5] scale-y-[0.35]">▼</div>
+                <div className="text-3xl drop-shadow-sm scale-x-[0.8] scale-y-[0.6]">▼</div>
               </motion.div>
 
               {/* Spinner Button */}
@@ -865,11 +1037,12 @@ interface PieceVisualProps {
   isKicked?: boolean;
   isKicking?: boolean;
   isFinished?: boolean;
+  isAngry?: boolean;
   canMove?: boolean;
   key?: React.Key;
 }
 
-function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking, isFinished, canMove }: PieceVisualProps) {
+function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking, isFinished, isAngry, canMove }: PieceVisualProps) {
   const left = piece.animationPath ? piece.animationPath.map(p => `${p.x}%`) : `${coord.x}%`;
   const top = piece.animationPath ? piece.animationPath.map(p => `${p.y}%`) : `${coord.y}%`;
 
@@ -880,9 +1053,9 @@ function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking
       animate={{ 
         left, 
         top,
-        scale: isKicked ? [1, 1.5, 1] : isFinished ? [1, 1.5, 0] : 1,
+        scale: isKicked ? [1, 2.5, 1] : isFinished ? [1, 1.5, 0] : 1,
         opacity: isFinished ? 0 : 1,
-        rotate: isKicked ? [0, 180, 360] : 0,
+        rotate: isKicked ? [0, 720, 1440] : 0,
       }}
       transition={{ 
         type: piece.animationPath ? 'tween' : 'spring',
@@ -892,7 +1065,8 @@ function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking
         damping: 25,
         mass: 0.8,
       }}
-      className={`absolute w-9 h-9 -ml-[18px] -mt-[18px] rounded-xl border-2 border-white shadow-lg flex items-center justify-center cursor-pointer pointer-events-auto z-10 bg-white
+      style={{ zIndex: piece.animationPath ? 100 : 10 }}
+      className={`absolute w-[54px] h-[54px] -ml-[27px] -mt-[27px] rounded-2xl border-2 border-white shadow-lg flex items-center justify-center cursor-pointer pointer-events-auto bg-white
         ${canMove ? 'ring-4 ring-yellow-400 ring-offset-2 animate-pulse' : ''}
       `}
       onClick={(e) => {
@@ -904,22 +1078,31 @@ function PieceVisual({ piece, coord, stackSize = 1, onClick, isKicked, isKicking
         {isKicking && (
           <motion.div
             initial={{ y: 0, opacity: 0, scale: 0 }}
-            animate={{ y: -40, opacity: 1, scale: 1.5 }}
+            animate={{ y: -50, opacity: 1, scale: 1.5 }}
             exit={{ opacity: 0 }}
             className="absolute z-50 pointer-events-none whitespace-nowrap"
           >
-            <div className="bg-red-600 text-white font-black text-xs px-2 py-0.5 rounded border border-white shadow-lg rotate-12 flex items-center gap-1">
-              <span>KICK!</span>
-              <span>😈</span>
+            <div className="bg-red-600 text-white font-black text-sm px-3 py-1 rounded border-2 border-white shadow-lg rotate-12 flex items-center gap-1">
+              <span>KICK</span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <DinoIcon color={piece.owner === 'A' ? '#3b82f6' : '#ef4444'} size={24} />
+      <DinoIcon color={piece.owner === 'A' ? '#3b82f6' : '#ef4444'} size={36} />
+
+      {isAngry && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute -top-4 -right-4 text-2xl"
+        >
+          😡
+        </motion.div>
+      )}
 
       {stackSize > 1 && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center text-[8px] font-black text-stone-900 border border-stone-200">
+        <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-black text-stone-900 border-2 border-stone-200">
           {stackSize}
         </div>
       )}

@@ -20,6 +20,7 @@ export interface GameState {
   status: 'spinning' | 'moving' | 'finished';
   winner: Player | null;
   stepsCount: { A: number; B: number };
+  kickedCount: { A: number; B: number };
   isSpinning: boolean;
   message: string;
   selectedPieceId: number | null;
