@@ -582,7 +582,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col items-center justify-center p-4 font-sans text-stone-800 overflow-hidden">
+    <div className="min-h-screen bg-stone-100 flex flex-col items-center justify-center p-4 font-sans text-stone-800 overflow-y-auto overflow-x-hidden">
       {/* Winner Overlay */}
       <AnimatePresence>
         {game.winner && (
@@ -773,80 +773,83 @@ export default function App() {
       </div>
 
       {/* Empty space below board */}
-      <div className="h-12" />
+      <div className="h-4 md:h-12" />
 
-      {/* Instructions - Floating above spinner */}
-      <div className="fixed bottom-[210px] right-[calc(50%-300px-64px-160px)] z-[150] w-40 flex flex-col items-center pointer-events-none">
-        <div className="bg-white/80 backdrop-blur-md px-3 py-2 rounded-2xl border border-stone-200 shadow-sm text-center">
-          <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">遊戲玩法</p>
-          <div className="text-[9px] font-bold text-stone-600 leading-relaxed">
-            <p>• 點擊轉盤決定步數</p>
-            <p>• 踩到對手踢回起點</p>
-            <p>• 4隻抵達終點獲勝</p>
+      {/* Spinner & Instructions Wrapper */}
+      <div className="relative md:fixed md:bottom-8 md:right-[calc(50%-300px-64px-160px)] z-[150] flex flex-col items-center gap-4">
+        {/* Instructions */}
+        <div className="w-40 flex flex-col items-center pointer-events-none">
+          <div className="bg-white/80 backdrop-blur-md px-3 py-2 rounded-2xl border border-stone-200 shadow-sm text-center w-full">
+            <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">遊戲玩法</p>
+            <div className="text-[9px] font-bold text-stone-600 leading-relaxed">
+              <p>• 點擊轉盤決定步數</p>
+              <p>• 踩到對手踢回起點</p>
+              <p>• 4隻抵達終點獲勝</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Spinner Area - Bottom Right Outside Board */}
-      <div className="fixed bottom-8 right-[calc(50%-300px-64px-160px)] z-[150] w-40 h-40 flex items-center justify-center">
-        <div className="relative w-full h-full flex items-center justify-center">
-          {/* Circular Text - Centered around the button */}
-          <AnimatePresence>
-            {(game.status === 'spinning' || game.isSpinning) && !game.winner && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute inset-0 pointer-events-none flex items-center justify-center"
-              >
-                <svg viewBox="0 0 100 100" className="w-full h-full animate-[spin_10s_linear_infinite]">
-                  <path
-                    id="circlePath"
-                    d="M 50, 50 m -40, 0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0"
-                    fill="transparent"
-                  />
-                  <text className="text-[5.5px] font-black fill-stone-400 uppercase tracking-[0.25em]">
-                    <textPath href="#circlePath" startOffset="0%">
-                      {game.currentPlayer === 'A' ? 'PLAYER A TURN • SPIN NOW • PLAYER A TURN • SPIN NOW • ' : 'COMPUTER B TURN • SPIN NOW • COMPUTER B TURN • SPIN NOW • '}
-                    </textPath>
-                  </text>
-                </svg>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="flex flex-col items-center relative">
-            {/* Bouncing Arrow & Extra Spin */}
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut" }}
-              className={`absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center transition-colors ${game.currentPlayer === 'A' ? 'text-blue-500' : 'text-red-500'}`}
-            >
-              {game.remainingSpins > 0 && (
-                <div className="text-[10px] font-black bg-yellow-400 text-stone-900 px-2 py-0.5 rounded-full border border-stone-900 mb-1 shadow-sm">
-                  +{game.remainingSpins}
-                </div>
+        {/* Spinner Area */}
+        <div className="w-40 h-40 flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center">
+            {/* Circular Text - Centered around the button */}
+            <AnimatePresence>
+              {(game.status === 'spinning' || game.isSpinning) && !game.winner && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="absolute inset-0 pointer-events-none flex items-center justify-center"
+                >
+                  <svg viewBox="0 0 100 100" className="w-full h-full animate-[spin_10s_linear_infinite]">
+                    <path
+                      id="circlePath"
+                      d="M 50, 50 m -40, 0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0"
+                      fill="transparent"
+                    />
+                    <text className="text-[5.5px] font-black fill-stone-400 uppercase tracking-[0.25em]">
+                      <textPath href="#circlePath" startOffset="0%">
+                        {game.currentPlayer === 'A' ? 'PLAYER A TURN • SPIN NOW • PLAYER A TURN • SPIN NOW • ' : 'COMPUTER B TURN • SPIN NOW • COMPUTER B TURN • SPIN NOW • '}
+                      </textPath>
+                    </text>
+                  </svg>
+                </motion.div>
               )}
-              <div className="text-xl drop-shadow-sm scale-x-[0.5] scale-y-[0.35]">▼</div>
-            </motion.div>
+            </AnimatePresence>
 
-            {/* Spinner Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleSpin}
-              disabled={game.isSpinning || !!game.winner || game.remainingSpins === 0}
-              className={`w-24 h-24 rounded-full border-[8px] flex items-center justify-center text-3xl font-black shadow-2xl transition-all relative z-10
-                ${showRainbow ? 'animate-[rainbow_2s_linear_infinite] border-white text-white' : ''}
-                ${game.remainingSpins > 0 && !game.isSpinning 
-                  ? (game.currentPlayer === 'A' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-red-500 bg-red-50 text-red-600') + ' cursor-pointer' 
-                  : 'border-stone-300 bg-stone-100 text-stone-400 cursor-not-allowed'}
-              `}
-            >
-              <span className="translate-y-1">
-                {game.isSpinning ? displaySpinValue : (hasSpun || game.status === 'moving' ? (game.bankedSpins[game.selectedSpinIndex ?? -1] || displaySpinValue) : "SPIN")}
-              </span>
-            </motion.button>
+            <div className="flex flex-col items-center relative">
+              {/* Bouncing Arrow & Extra Spin */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut" }}
+                className={`absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center transition-colors ${game.currentPlayer === 'A' ? 'text-blue-500' : 'text-red-500'}`}
+              >
+                {game.remainingSpins > 0 && (
+                  <div className="text-[10px] font-black bg-yellow-400 text-stone-900 px-2 py-0.5 rounded-full border border-stone-900 mb-1 shadow-sm">
+                    +{game.remainingSpins}
+                  </div>
+                )}
+                <div className="text-xl drop-shadow-sm scale-x-[0.5] scale-y-[0.35]">▼</div>
+              </motion.div>
+
+              {/* Spinner Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSpin}
+                disabled={game.isSpinning || !!game.winner || game.remainingSpins === 0}
+                className={`w-24 h-24 rounded-full border-[8px] flex items-center justify-center text-3xl font-black shadow-2xl transition-all relative z-10
+                  ${showRainbow ? 'animate-[rainbow_2s_linear_infinite] border-white text-white' : ''}
+                  ${game.remainingSpins > 0 && !game.isSpinning 
+                    ? (game.currentPlayer === 'A' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-red-500 bg-red-50 text-red-600') + ' cursor-pointer' 
+                    : 'border-stone-300 bg-stone-100 text-stone-400 cursor-not-allowed'}
+                `}
+              >
+                <span className="translate-y-1">
+                  {game.isSpinning ? displaySpinValue : (hasSpun || game.status === 'moving' ? (game.bankedSpins[game.selectedSpinIndex ?? -1] || displaySpinValue) : "SPIN")}
+                </span>
+              </motion.button>
+            </div>
           </div>
         </div>
       </div>
